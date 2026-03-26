@@ -425,15 +425,14 @@ function attachVendorListeners(vendor, socket) {
     console.warn(`[${vendor.name}] error:`, vendor.lastError)
   })
 }
-if (vendor.name === 'aamlin') {
-  vendor.activeConfig = {
-    baseUrl: 'wss://starlinebulltech.in:10001',
-    path: '/socket.io/',
-    transports: ['websocket'],
-  }
-}
-
 async function connectVendor(vendor, forceRediscovery = false) {
+  if (vendor.name === 'aamlin') {
+    vendor.activeConfig = {
+      baseUrl: 'wss://starlinebulltech.in:10001',
+      path: '/socket.io/',
+      transports: ['websocket'],
+    }
+  }
   if (vendor.socket) {
     try { vendor.socket.removeAllListeners() } catch {}
     try { vendor.socket.close() } catch {}
