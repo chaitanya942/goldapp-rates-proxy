@@ -64,7 +64,7 @@ function connectAmbica() {
 function connectAamlin() {
   const socket = io("wss://starlinebulltech.in:10001", {
     path: "/socket.io/",
-    transports: ["websocket"],
+    transports: ["polling"],
 
     extraHeaders: {
       Origin: "http://www.aamlinspot.in",
