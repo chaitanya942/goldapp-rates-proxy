@@ -86,7 +86,10 @@ function connectAamlin() {
   })
 
   socket.on("connect_error", (err) => {
-    console.log("❌ Aamlin error:", err.message)
+    if (!state.aamlin.lastErrorLogged) {
+  console.log("❌ Aamlin error:", err.message)
+  state.aamlin.lastErrorLogged = true
+}
     setTimeout(connectAamlin, 5000)
   })
 
