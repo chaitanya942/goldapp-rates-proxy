@@ -1,7 +1,4 @@
 // goldapp-rates-proxy/index.js
-// Maintains persistent Socket.IO connections to Ambicaa and Aamlin
-// Saves latest rates to Supabase every minute
-// Exposes GET /rates for health checking
 
 import { io } from 'socket.io-client'
 import { createClient } from '@supabase/supabase-js'
@@ -15,7 +12,6 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
-// In-memory latest rates
 const state = {
   ambica_sell_rate: null,
   aamlin_sell_rate: null,
@@ -29,7 +25,7 @@ function connectAmbicaa() {
   const socket = io('http://dashboard.ambicaaspot.com:10001', {
     transports:        ['websocket', 'polling'],
     reconnection:      true,
-    reconnectionDelay: 3000,
+    reconnectionDelay: 5000,
     timeout:           10000,
   })
 
@@ -61,13 +57,15 @@ function connectAmbicaa() {
 }
 
 // ── Aamlin ────────────────────────────────────────────────────────────────────
+// Force polling only — WebSocket on non-standard port blocked by Railway
 function connectAamlin() {
-  console.log('[Aamlin] Connecting...')
+  console.log('[Aamlin] Connecting via polling...')
   const socket = io('http://starlinebulltech.in:10001', {
-    transports:        ['websocket', 'polling'],
+    transports:        ['polling'],  // polling only, no websocket upgrade
     reconnection:      true,
-    reconnectionDelay: 3000,
-    timeout:           10000,
+    reconnectionDelay: 5000,
+    timeout:           15000,
+    forceNew:          true,
   })
 
   socket.on('connect', () => {
@@ -98,8 +96,6 @@ function connectAamlin() {
 }
 
 // ── Save to Supabase every minute ─────────────────────────────────────────────
-// Inserts a new row — Kalinga rate will be null here (handled by GoldApp cron)
-// GoldApp fetch-gold-rates will update the latest row with Kalinga rate
 async function saveToSupabase() {
   if (!state.ambica_sell_rate && !state.aamlin_sell_rate) {
     console.log('[Supabase] No rates yet, skipping save')
@@ -115,7 +111,7 @@ async function saveToSupabase() {
 }
 
 // ── Express ───────────────────────────────────────────────────────────────────
-app.get('/rates', (req, res) => {
+app.get('/rates', (_req, res) => {
   res.json({
     ambica_sell_rate: state.ambica_sell_rate,
     aamlin_sell_rate: state.aamlin_sell_rate,
@@ -133,6 +129,5 @@ app.listen(PORT, () => {
   connectAmbicaa()
   connectAamlin()
   setInterval(saveToSupabase, 60 * 1000)
-  // Initial save after 10s to let connections establish
-  setTimeout(saveToSupabase, 10000)
+  setTimeout(saveToSupabase, 15000)
 })
